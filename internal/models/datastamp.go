@@ -1,15 +1,18 @@
-package models
+package models // в этом файле у меня обьявление структуры которую я буду сохранять в дб,
+// а так же методы для работы с ней типа вывода
 
 import (
+	// "fmt"
 	"fmt"
-	"github.com/olekukonko/tablewriter"
 	"os"
 	"sort"
 	"strconv"
 	"time"
+
+	"github.com/olekukonko/tablewriter"
 )
 
-var (
+var ( // я не помню где я их использую, возможно удалю позже. а может и нет.
 	HULLS   = []string{"Wasp", "Hornet", "Hopper", "Viking", "Hunter", "Crusader", "Paladin", "Dictator", "Ares", "Titan", "Mammoth"}
 	TURRETS = []string{"Firebird", "Freeze", "Isida", "Tesla", "Hammer", "Twins", "Ricochet", "Smoky", "Striker", "Vulcan", "Thunder", "Scorpion", "Railgun", "Magnum", "Gauss", "Shaft"}
 	//DRONES  = []string{"Crisis", "Brutus", "Saboteur", "Trickster", "Mechanic", "Booster", "Defender", "Hyperion"}
@@ -39,8 +42,9 @@ type NameAndThing struct {
 	Value Thing
 }
 
-func MapToSortedSlice(m map[string]Thing) []NameAndThing {
-	var ss []NameAndThing
+func MapToSortedSlice(m map[string]Thing) []NameAndThing { // мапа с корпусами/пушками в список корпусов/пушек, сортированый
+	// var ss []NameAndThing
+	ss := make([]NameAndThing, 0, len(m)) // оптимизация хелл йеах
 	for k, v := range m {
 		ss = append(ss, NameAndThing{k, v})
 	}
@@ -55,38 +59,37 @@ func msToHours(microseconds int) int {
 	return microseconds / (1000 * 60 * 60)
 }
 
-func (d *Datastamp) Print() {
-	line := "------------------------------------------------\n"
-	fmt.Print("Time:", d.Timestamp)
-	fmt.Print("\nName: ", d.Name, "\nGS: ", d.GearScore)
-	fmt.Print("\nKills: ", d.Kills, "\nDeaths: ", d.Deaths, "\nK/D:", float32(d.Kills)/float32(d.Deaths))
+func (d *Datastamp) NewPrint(howManyEntitiesPrint int) {
 
-	fmt.Print("\nTurret\t\tScore\t\tTime played, h\n", line)
-	turrets := MapToSortedSlice(d.Turrets)
-	for _, a := range turrets[:5] {
-		fmt.Print(a.Key, "\t\t", a.Value.ScoreEarned, "\t\t", msToHours(a.Value.TimePlayed), "\n")
-	}
+	//основное инфо
 
-	hulls := MapToSortedSlice(d.Hulls)
-	fmt.Print("\nHull\t\tScore\t\tTime played, h\n", line)
-	for _, a := range hulls[:5] {
-		fmt.Print(a.Key, "\t\t", a.Value.ScoreEarned, "\t\t", msToHours(a.Value.TimePlayed), "\n")
-	}
+	briefTable := tablewriter.NewWriter(os.Stdout)
+	briefTable.Append([]string{"Name", d.Name})
+	briefTable.Append([]string{"K/D:", fmt.Sprintf("%.2f", (float32(d.Kills) / float32(d.Deaths)))})
+	briefTable.Append([]string{"Score", fmt.Sprint(d.Rank)})
+	briefTable.Render()
 
-}
+	// вывод таблицы пушек
 
-func (d *Datastamp) NewPrint() {
-	howManyEntitiesPrint := 5
-
-	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeader([]string{"Turret", "Score", "Time played, h"})
+	TurretTable := tablewriter.NewWriter(os.Stdout)
+	TurretTable.SetHeader([]string{"Turret", "Score", "Hours played"})
 	TurretSlice := MapToSortedSlice(d.Turrets)
 
 	for _, v := range TurretSlice[:howManyEntitiesPrint] {
-		table.Append([]string{v.Key, strconv.Itoa(v.Value.ScoreEarned), strconv.Itoa(v.Value.TimePlayed)})
+		TurretTable.Append([]string{v.Key, strconv.Itoa(v.Value.ScoreEarned), strconv.Itoa(msToHours(v.Value.TimePlayed))})
 	}
+	TurretTable.Render()
 
-	table.Render()
+	// вывод таблицы корпусов
+
+	HullTable := tablewriter.NewWriter(os.Stdout)
+	HullTable.SetHeader([]string{"Hull", "Score", "Hours played"})
+	HullSlice := MapToSortedSlice(d.Hulls)
+
+	for _, v := range HullSlice[:howManyEntitiesPrint] {
+		HullTable.Append([]string{v.Key, strconv.Itoa(v.Value.ScoreEarned), strconv.Itoa(msToHours(v.Value.TimePlayed))})
+	}
+	HullTable.Render()
 }
 
 func (d *Datastamp) ConvertResponseToDatastamp(data ResponseWrapper) {
