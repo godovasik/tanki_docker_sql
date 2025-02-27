@@ -36,8 +36,8 @@ func NewPostgresPool(cfg Config) (*pgxpool.Pool, error) { // эта функци
 type UserRepository interface { //интерфейс бд как я понял
 	CreateUser(ctx context.Context, user models.User) error
 	GetAllUsers(ctx context.Context) ([]models.User, error)
-	// GetUserById(ctx context.Context, id int) (*models.User, error)
-	// DeleteUser(ctx context.Context, id int) error
+	GetUserById(ctx context.Context, id int) (*models.User, error)
+	DeleteUser(ctx context.Context, id int) error
 }
 
 type userRepo struct { // ааааааааа это будет нашим интерфейсом наверно
@@ -54,6 +54,14 @@ func (r *userRepo) CreateUser(ctx context.Context, user models.User) error {
 	query := `insert into users (username) values ($1)`
 	_, err := r.db.Exec(ctx, query, user.Name)
 	return err
+}
+
+func (r *userRepo) GetUserById(ctx context.Context, id int) (*models.User, error) {
+	// query := `select user_id, name from users where id = $1`
+	// user := models.User{}
+	// err := r.db.QueryRow()
+	// я заебался на сегодня, завтра доделаю Kappa
+	return nil, nil
 }
 
 func (r *userRepo) GetAllUsers(ctx context.Context) ([]models.User, error) {
@@ -76,4 +84,10 @@ func (r *userRepo) GetAllUsers(ctx context.Context) ([]models.User, error) {
 		return nil, err
 	}
 	return users, err
+}
+
+func (r *userRepo) DeleteUser(ctx context.Context, id int) error {
+	query := `delete from users where id = $1`
+	_, err := r.db.Exec(ctx, query, id)
+	return err
 }

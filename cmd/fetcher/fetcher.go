@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/godovasik/tanki_docker_sql/internal/storage"
 	"github.com/godovasik/tanki_docker_sql/logger"
@@ -34,12 +33,13 @@ func main() {
 	ctx := context.Background()
 	// закончили подключаться и создали контекст. надо бы все это обернуть
 
-	users, err := userRepo.GetAllUsers(ctx)
-	if err != nil {
-		logger.Log.Error(err)
-		return
-	}
-	fmt.Println(users)
+	// getAllUsers
+	// users, err := userRepo.GetAllUsers(ctx)
+	// if err != nil {
+	// 	logger.Log.Error(err)
+	// 	return
+	// }
+	// fmt.Println(users)
 
 	// тестировал добавление юзера
 	// err = userRepo.CreateUser(ctx, models.User{Name: "silly"})
@@ -57,7 +57,7 @@ func main() {
 	// }
 	// logger.Log.Info("task scheduled")
 
-	//дальше это я баловался, буду стирать
+	//тестировал парсер
 	/*
 		resp, err := fetcher.SendRequest("silly")
 		if err != nil {
