@@ -3,13 +3,72 @@ package main
 import (
 	"context"
 	"fmt"
+	"sync"
+	"time"
 
+	"github.com/godovasik/tanki_docker_sql/internal/fetcher"
+	"github.com/godovasik/tanki_docker_sql/internal/models"
 	"github.com/godovasik/tanki_docker_sql/internal/storage"
 	"github.com/godovasik/tanki_docker_sql/logger"
-	// "github.com/robfig/cron/v3"
+	"github.com/robfig/cron/v3"
 )
 
-//"github.com/godovasik/tanki_docker_sql/internal/fetcher"
+type datastampAndUserId struct {
+	datastamp *models.Datastamp
+	user_id   int
+}
+
+func UpdateTask(ctx context.Context, userRepo storage.UserRepository, f fetcher.Fetcher) error {
+
+	/*
+	   1. Подтянуть откуда-то список игроков, из дб видимо
+	   2. запустить горутину на каждого пользователя и загружать его данные в структурку
+	   3. записать все это дело в дб
+	*/
+
+	users, err := userRepo.GetAllUsers(ctx)
+	if err != nil {
+		return err
+	}
+
+	ch := make(chan datastampAndUserId, len(users))
+
+	wg := sync.WaitGroup{}
+	for _, user := range users {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			resp, err := f.SendRequest(ctx, user.Name) // надо обработать если юзер не найден
+			if err != nil {
+				fmt.Println("err:", err)
+				return
+			}
+			// fmt.Println("resp:", resp)
+			rawData, err := f.ParseResponse(resp)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+			data := models.ConvertResponseToDatastamp(rawData)
+			ch <- datastampAndUserId{data, user.Id}
+		}()
+	}
+
+	go func() {
+		wg.Wait()
+		close(ch)
+	}()
+
+	for data := range ch {
+		err = userRepo.UpdateDataForUser(ctx, data.datastamp, data.user_id)
+		if err != nil {
+			logger.Log.Error("ошибка при добавлении статы:", err)
+		}
+	}
+
+	return nil
+
+}
 
 func main() {
 	//настройка логов
@@ -24,14 +83,47 @@ func main() {
 		return
 	}
 	defer cleanup()
+
+	f := fetcher.NewHTTPFetcher(10 * time.Second)
+
 	ctx := context.Background()
 
-	date, err := userRepo.FindLastStampDate(ctx, 1)
+	UpdateTask(ctx, userRepo, f)
+
+	logger.Log.Debug("initializing cron task")
+	c := cron.New()
+	_, err = c.AddFunc("0 */2 * * *", func() {
+		_ = UpdateTask(ctx, userRepo, f)
+	})
 	if err != nil {
 		logger.Log.Error(err)
-		return
 	}
-	fmt.Println(date)
+
+	c.Start()
+	logger.Log.Info("task scheduled")
+	select {}
+
+	// fmt.Println(datastamp.Hulls["Wasp"])
+
+	// userData, err := userRepo.FindLastGearStats(ctx, 2, 1)
+	// if err != nil {
+	// 	fmt.Println(err)
+	// }
+
+	// fmt.Println(userData)
+
+	// err = userRepo.AddGearStats(ctx, 6, 4, models.GearData{TimePlayed: 15, ScoreEarned: 65})
+	// if err != nil {
+	// 	fmt.Println(err)
+	// }
+
+	// find last
+	// date, err := userRepo.FindLastStampDate(ctx, 2)
+	// if err != nil {
+	// 	logger.Log.Error(err)
+	// 	return
+	// }
+	// fmt.Println(date)
 
 	//про это пока забыли
 	// data, err := userRepo.FindLastChangedDatastamp(ctx, 2)
@@ -74,13 +166,6 @@ func main() {
 	// logger.Log.Info("we added some silly boi!")
 
 	//ставим крон таску
-	// logger.Log.Debug("initializing cron task")
-	// c := cron.New()
-	// _, err = c.AddFunc("0 3 * * *", UpdateTask)
-	// if err != nil {
-	// 	logger.Log.Error(err)
-	// }
-	// logger.Log.Info("task scheduled")
 
 	//тестировал парсер
 	/*
@@ -100,14 +185,4 @@ func main() {
 		datastamp.ConvertResponseToDatastamp(data)
 		datastamp.NewPrint(3)
 	*/
-	logger.Log.Infof("disconnected from db")
-}
-
-func UpdateTask() {
-	/*
-	   1. Подтянуть откуда-то список игроков, из дб видимо
-	   2. запустить горутину на каждого пользователя и загружать его данные в структурку
-	   3. записать все это дело в дб
-	*/
-
 }
