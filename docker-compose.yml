@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: tanki_enjoyer
+      POSTGRES_PASSWORD: rock
+      POSTGRES_DB: game_stats
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./scripts:/docker-entrypoint-initdb.d
+
+  fetcher:
+    build:
+      context: .
+      dockerfile: Dockerfile.fetcher
+    depends_on:
+      - postgres
+    environment:
+      DATABASE_URL: "postgresql://tanki_enjoyer:rock@postgres:5432/game_stats"
+    profiles:
+      - fetcher_only
+      - full_stack
+
+  main:
+    build:
+      context: .
+      dockerfile: Dockerfile.main
+    depends_on:
+      - postgres
+      - fetcher
+    environment:
+      DATABASE_URL: "postgresql://tanki_enjoyer:rock@postgres:5432/game_stats"
+    profiles:
+      - full_stack
+
+volumes:
+  pg_data:
