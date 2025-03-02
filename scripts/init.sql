@@ -48,7 +48,7 @@ CREATE INDEX IF NOT EXISTS idx_datastamps_created_at ON datastamps(created_at);
 -- Создаем таблицу gear_stats
 CREATE TABLE IF NOT EXISTS gear_stats (
     datastamp_id INTEGER NOT NULL REFERENCES datastamps(datastamp_id) ON DELETE CASCADE,
-    hull_key SMALLINT NOT NULL,
+    gear_key SMALLINT NOT NULL,
     score_earned INTEGER NOT NULL,
     seconds_played INTEGER NOT NULL,
     PRIMARY KEY (datastamp_id, hull_key)

@@ -4,7 +4,6 @@ services:
   postgres:
     image: postgres:15
     container_name: postgres_db
-    restart: always
     environment:
       POSTGRES_USER: tanki_enjoyer
       POSTGRES_PASSWORD: rock
@@ -14,13 +13,19 @@ services:
     volumes:
       - pg_data:/var/lib/postgresql/data
       - ./scripts:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tanki_enjoyer -d game_stats"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   fetcher:
     build:
       context: .
       dockerfile: Dockerfile.fetcher
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     environment:
       DATABASE_URL: "postgresql://tanki_enjoyer:rock@postgres:5432/game_stats"
     profiles:
@@ -32,8 +37,8 @@ services:
       context: .
       dockerfile: Dockerfile.main
     depends_on:
-      - postgres
-      - fetcher
+      postgres:
+        condition: service_healthy
     environment:
       DATABASE_URL: "postgresql://tanki_enjoyer:rock@postgres:5432/game_stats"
     profiles:
