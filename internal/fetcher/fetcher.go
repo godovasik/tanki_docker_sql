@@ -2,6 +2,7 @@ package fetcher
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -25,13 +26,18 @@ type HTTPFetcher struct {
 // NewHTTPFetcher создает новый HTTPFetcher с заданным таймаутом
 func NewHTTPFetcher(timeout time.Duration) *HTTPFetcher {
 	return &HTTPFetcher{
-		client: &http.Client{Timeout: timeout},
+		client: &http.Client{
+			Timeout: timeout,
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // Отключает проверку сертификата
+			},
+		},
 	}
 }
 
 // SendRequest отправляет HTTP-запрос с учетом контекста
 func (h *HTTPFetcher) SendRequest(ctx context.Context, username string) (*http.Response, error) {
-	url := fmt.Sprintf("https://ratings.tankionline.com/api/eu/profile/?user=%s&lang=en", username)
+	url := fmt.Sprintf("http://ratings.tankionline.com/api/eu/profile/?user=%s&lang=en", username)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {

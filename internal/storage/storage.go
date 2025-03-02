@@ -16,7 +16,12 @@ type Config struct {
 }
 
 func ConnectToDb() (UserRepository, func(), error) {
-	DSN := "postgres://tanki_enjoyer:r@172.24.125.42:5432/game_stats"
+
+	// DSN := os.Getenv("DATABASE_URL")
+	// if DSN == "" {
+	// 	logger.Log.Error("DATABASE_URL не установлена")
+	// }
+	DSN := "postgresql://tanki_enjoyer:rock@postgres:5432/game_stats"
 	logger.Log.Info("connecting to db...")
 
 	cfg := Config{DSN: DSN}

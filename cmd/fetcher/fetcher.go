@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"time"
 
@@ -10,7 +9,6 @@ import (
 	"github.com/godovasik/tanki_docker_sql/internal/models"
 	"github.com/godovasik/tanki_docker_sql/internal/storage"
 	"github.com/godovasik/tanki_docker_sql/logger"
-	"github.com/robfig/cron/v3"
 )
 
 type datastampAndUserId struct {
@@ -40,13 +38,13 @@ func UpdateTask(ctx context.Context, userRepo storage.UserRepository, f fetcher.
 			defer wg.Done()
 			resp, err := f.SendRequest(ctx, user.Name) // надо обработать если юзер не найден
 			if err != nil {
-				fmt.Println("err:", err)
+				logger.Log.Error("ошибка при отправке реквеста", err)
 				return
 			}
 			// fmt.Println("resp:", resp)
 			rawData, err := f.ParseResponse(resp)
 			if err != nil {
-				fmt.Println(err)
+				logger.Log.Error("ошибка парсинга: ", err)
 				return
 			}
 			data := models.ConvertResponseToDatastamp(rawData)
@@ -90,18 +88,18 @@ func main() {
 
 	UpdateTask(ctx, userRepo, f)
 
-	logger.Log.Debug("initializing cron task")
-	c := cron.New()
-	_, err = c.AddFunc("0 */2 * * *", func() {
-		_ = UpdateTask(ctx, userRepo, f)
-	})
-	if err != nil {
-		logger.Log.Error(err)
-	}
+	// logger.Log.Debug("initializing cron task")
+	// c := cron.New()
+	// _, err = c.AddFunc("0 */2 * * *", func() {
+	// 	_ = UpdateTask(ctx, userRepo, f)
+	// })
+	// if err != nil {
+	// 	logger.Log.Error(err)
+	// }
 
-	c.Start()
-	logger.Log.Info("task scheduled")
-	select {}
+	// c.Start()
+	// logger.Log.Info("task scheduled")
+	// select {}
 
 	// fmt.Println(datastamp.Hulls["Wasp"])
 
