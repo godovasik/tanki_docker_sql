@@ -45,6 +45,7 @@ case "$1" in
         ;;
     backup)
         docker exec postgres_db pg_dump -U tanki_enjoyer -d game_stats > backup.sql
+        ;;
     logs)
         if [ -z "$2" ]; then
             docker-compose logs
