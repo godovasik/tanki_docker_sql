@@ -19,45 +19,45 @@ function show_help {
 
 case "$1" in
     start)
-        docker-compose --profile fetcher_only up -d
+        docker compose --profile fetcher_only up -d
         ;;
     stop)
-        docker-compose --profile fetcher_only down
+        docker compose --profile fetcher_only down
         ;;
     restart)
-        docker-compose --profile fetcher_only down
-        docker-compose --profile fetcher_only up -d
+        docker compose --profile fetcher_only down
+        docker compose --profile fetcher_only up -d
         ;;
     rebuild)
-        docker-compose --profile fetcher_only down
-        docker-compose --profile fetcher_only up --build -d
+        docker compose --profile fetcher_only down
+        docker compose --profile fetcher_only up --build -d
         ;;
     clean)
-        docker-compose down --remove-orphans
+        docker compose down --remove-orphans
         docker system prune -f
         ;;
     fullclean)
-        docker-compose down --volumes --remove-orphans
+        docker compose down --volumes --remove-orphans
         docker system prune -af --volumes
         ;;
     status)
-        docker-compose ps
+        docker compose ps
         ;;
     backup)
         docker exec postgres_db pg_dump -U tanki_enjoyer -d game_stats > backup.sql
         ;;
     logs)
         if [ -z "$2" ]; then
-            docker-compose logs
+            docker compose logs
         else
-            docker-compose logs "$2"
+            docker compose logs "$2"
         fi
         ;;
     follow)
         if [ -z "$2" ]; then
-            docker-compose logs -f
+            docker compose logs -f
         else
-            docker-compose logs -f "$2"
+            docker compose logs -f "$2"
         fi
         ;;
     help|*)
