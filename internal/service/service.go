@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	"github.com/godovasik/tanki_docker_sql/internal/fetcher"
@@ -75,4 +76,22 @@ func (s *UserService) UpdateTask(ctx context.Context) error {
 
 	return nil
 
+}
+
+func (s *UserService) AddUser(ctx context.Context, username string) error {
+	resp, err := s.fetcher.SendRequest(ctx, username)
+	if err != nil {
+		return err
+	}
+	data, err := s.fetcher.ParseResponse(resp)
+	if err != nil {
+		return err
+	}
+
+	if data.ResponseType == "NOT_FOUND" {
+		return fmt.Errorf("user %s does not exist in tanki", username)
+	}
+
+	err = s.userRepo.CreateUser(ctx, models.User{Name: username})
+	return err
 }

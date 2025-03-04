@@ -34,6 +34,7 @@ func main() {
 
 	fmt.Println("yoooooooooooooooooo")
 
+	// она обрабатывает ошибки сама так что похуй я не знаю как правильно
 	srvc.UpdateTask(ctx)
 
 	logger.Log.Debug("initializing cron task")

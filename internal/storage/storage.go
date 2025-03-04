@@ -223,8 +223,11 @@ func (r *userRepo) UpdateDataForUser(ctx context.Context, data *models.Datastamp
 		return err
 	}
 
-	logger.Log.Debugf("added %v hulls and %v turrets for user %v", hullsAdded, turretsAdded, data.Name)
-
+	if (hullsAdded == 0) && (turretsAdded == 0) {
+		logger.Log.Debugf("%v: nothing new", data.Name)
+	} else {
+		logger.Log.Debugf("%v: added %v hulls and %v turrets ", data.Name, hullsAdded, turretsAdded)
+	}
 	return nil
 
 }
