@@ -14,8 +14,9 @@ import (
 
 // Fetcher определяет интерфейс для запроса данных из API
 type Fetcher interface {
-	SendRequest(ctx context.Context, username string) (*http.Response, error)
-	ParseResponse(resp *http.Response) (*models.ResponseWrapper, error)
+	sendRequest(ctx context.Context, username string) (*http.Response, error)
+	parseResponse(resp *http.Response) (*models.ResponseWrapper, error)
+	GetUserStats(ctx context.Context, username string) (*models.ResponseWrapper, error)
 }
 
 // HTTPFetcher реализует Fetcher с использованием http.Client
@@ -36,7 +37,7 @@ func NewHTTPFetcher(timeout time.Duration) *HTTPFetcher {
 }
 
 // SendRequest отправляет HTTP-запрос с учетом контекста
-func (h *HTTPFetcher) SendRequest(ctx context.Context, username string) (*http.Response, error) {
+func (h *HTTPFetcher) sendRequest(ctx context.Context, username string) (*http.Response, error) {
 	url := fmt.Sprintf("http://ratings.tankionline.com/api/eu/profile/?user=%s&lang=en", username)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -53,7 +54,7 @@ func (h *HTTPFetcher) SendRequest(ctx context.Context, username string) (*http.R
 }
 
 // ParseResponse читает и парсит JSON-ответ
-func (h *HTTPFetcher) ParseResponse(resp *http.Response) (*models.ResponseWrapper, error) {
+func (h *HTTPFetcher) parseResponse(resp *http.Response) (*models.ResponseWrapper, error) {
 	var data models.ResponseWrapper
 	defer resp.Body.Close()
 
@@ -68,4 +69,21 @@ func (h *HTTPFetcher) ParseResponse(resp *http.Response) (*models.ResponseWrappe
 	}
 
 	return &data, nil
+}
+
+func (h *HTTPFetcher) GetUserStats(ctx context.Context, username string) (*models.ResponseWrapper, error) {
+	resp, err := h.sendRequest(ctx, username) // надо обработать если юзер не найден
+	if err != nil {
+		return nil, fmt.Errorf("ошибка при отправке реквеста: %v", err)
+	}
+	// fmt.Println("resp:", resp)
+	data, err := h.parseResponse(resp)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка парсинга: %v", err)
+	}
+
+	if data.ResponseType == "NOT_FOUND" {
+		return nil, fmt.Errorf("NOT_FOUND")
+	}
+	return data, nil
 }

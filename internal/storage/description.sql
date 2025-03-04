@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS datastamps (
     datastamp_id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
     created_at TIMESTAMP NOT NULL,
+    score BIGINT,
     rank SMALLINT,
     kills INTEGER,
     deaths INTEGER,

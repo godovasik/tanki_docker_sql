@@ -9,6 +9,7 @@ import (
 	"github.com/godovasik/tanki_docker_sql/internal/models"
 	"github.com/godovasik/tanki_docker_sql/internal/storage"
 	"github.com/godovasik/tanki_docker_sql/logger"
+	"github.com/jackc/pgx/v5"
 )
 
 type UserService struct {
@@ -46,19 +47,24 @@ func (s *UserService) UpdateTask(ctx context.Context) error {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			resp, err := s.fetcher.SendRequest(ctx, user.Name) // надо обработать если юзер не найден
-			if err != nil {
-				logger.Log.Error("ошибка при отправке реквеста", err)
-				return
+			rawData, err := s.fetcher.GetUserStats(ctx, user.Name)
+			if err == fmt.Errorf("NOT_FOUND") {
+				logger.Log.Errorf("user %v not found, should delete", user.Name)
 			}
-			// fmt.Println("resp:", resp)
-			rawData, err := s.fetcher.ParseResponse(resp)
+			lastScore, err := s.userRepo.GetLastDatastampScore(ctx, user.Id)
 			if err != nil {
-				logger.Log.Error("ошибка парсинга: ", err)
-				return
+				if err == pgx.ErrNoRows {
+					logger.Log.Error("первый стамп:", user.Name)
+				} else {
+					logger.Log.Error("да пошел я нахуй")
+				}
 			}
-			data := models.ConvertResponseToDatastamp(rawData)
-			ch <- datastampAndUserId{data, user.Id}
+			if lastScore != rawData.Response.Score {
+				data := models.ConvertResponseToDatastamp(rawData)
+				ch <- datastampAndUserId{data, user.Id}
+			} else {
+				logger.Log.Debug(user.Name, ": nothing to update")
+			}
 		}()
 	}
 
@@ -79,19 +85,10 @@ func (s *UserService) UpdateTask(ctx context.Context) error {
 }
 
 func (s *UserService) AddUser(ctx context.Context, username string) error {
-	resp, err := s.fetcher.SendRequest(ctx, username)
-	if err != nil {
-		return err
+	_, err := s.fetcher.GetUserStats(ctx, username)
+	if err == fmt.Errorf("NOT_FOUND") {
+		return fmt.Errorf("user %v not found", username)
 	}
-	data, err := s.fetcher.ParseResponse(resp)
-	if err != nil {
-		return err
-	}
-
-	if data.ResponseType == "NOT_FOUND" {
-		return fmt.Errorf("user %s does not exist in tanki", username)
-	}
-
 	err = s.userRepo.CreateUser(ctx, models.User{Name: username})
 	return err
 }

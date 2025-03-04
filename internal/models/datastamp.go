@@ -22,6 +22,7 @@ var ( // я не помню где я их использую, возможно 
 type Datastamp struct {
 	Timestamp      time.Time
 	Name           string
+	Score          int
 	Rank           int
 	Kills          int
 	Deaths         int
@@ -101,8 +102,8 @@ func (d *Datastamp) NewPrint(howManyEntitiesPrint int) {
 func ConvertResponseToDatastamp(data *ResponseWrapper) *Datastamp {
 	var d Datastamp
 	r := data.Response
-	d.Name, d.Rank, d.Kills, d.Deaths, d.EarnedCrystals, d.GearScore =
-		r.Name, r.Rank, r.Kills, r.Deaths, r.EarnedCrystals, r.GearScore
+	d.Name, d.Score, d.Rank, d.Kills, d.Deaths, d.EarnedCrystals, d.GearScore =
+		r.Name, r.Score, r.Rank, r.Kills, r.Deaths, r.EarnedCrystals, r.GearScore
 
 	d.Hulls = make(map[string]GearData)
 	d.Turrets = make(map[string]GearData)

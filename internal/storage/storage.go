@@ -69,6 +69,7 @@ type UserRepository interface { //интерфейс бд как я понял
 	FindLastGearStats(ctx context.Context, user_id, gear_key int) (*models.GearData, error)
 	UpdateDataForUser(ctx context.Context, data *models.Datastamp, user_id int) error
 	loadGearMap(ctx context.Context, GearMap *map[string]models.GearData, user_id, datastamp_id int) (int, error)
+	GetLastDatastampScore(ctx context.Context, user_id int) (int, error)
 }
 
 type userRepo struct { // ааааааааа это будет нашим интерфейсом наверно
@@ -133,12 +134,12 @@ func (r *userRepo) DeleteUser(ctx context.Context, user_id int) error {
 func (r *userRepo) AddDatastamp(ctx context.Context, data *models.Datastamp, user_id int) (int, error) {
 	timeHourRounded := time.Now().Truncate(time.Hour)
 	query := `
-		INSERT INTO datastamps (user_id, created_at, rank, kills, deaths, cry)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		INSERT INTO datastamps (user_id, created_at, score, rank, kills, deaths, cry)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		RETURNING datastamp_id
 	`
 	var datastampID int
-	err := r.db.QueryRow(ctx, query, user_id, timeHourRounded, data.Rank, data.Kills, data.Deaths, data.EarnedCrystals).Scan(&datastampID)
+	err := r.db.QueryRow(ctx, query, user_id, timeHourRounded, data.Score, data.Rank, data.Kills, data.Deaths, data.EarnedCrystals).Scan(&datastampID)
 	if err != nil {
 		return 0, err
 	}
@@ -195,6 +196,21 @@ func (r *userRepo) FindLastGearStats(ctx context.Context, user_id, gear_key int)
 	}
 	return &gearData, nil
 
+}
+
+// можно совместить с поиском последней даты
+func (r *userRepo) GetLastDatastampScore(ctx context.Context, user_id int) (int, error) {
+	query := `SELECT score
+				FROM datastamps
+				WHERE datastamp_id = (
+					SELECT MAX(datastamp_id) 
+					FROM datastamps 
+					WHERE user_id = $1
+				);	
+	`
+	var lastScore int
+	err := r.db.QueryRow(ctx, query, user_id).Scan(&lastScore)
+	return lastScore, err
 }
 
 func (r *userRepo) UpdateDataForUser(ctx context.Context, data *models.Datastamp, user_id int) error { // do fucking everything
